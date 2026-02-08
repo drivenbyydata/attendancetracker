@@ -1,6 +1,17 @@
-const STORAGE_KEY = "attendance-tracker-data-v1";
+const SUPABASE_URL = "https://ryeidiawdqejwpvzxhnp.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_44bO8u3pthKzdzXLy1298Q_7Xg8pYwg";
+
 const ACCESS_PIN = "1988";
 const PIN_SESSION_KEY = "attendance-tracker-pin-ok";
+const CLOUD_KEY = "attendance-tracker-main";
+
+const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});
 
 const defaultData = () => ({
   settings: {
@@ -40,25 +51,12 @@ const defaultData = () => ({
 });
 
 const state = {
-  data: loadData(),
+  data: defaultData(),
   currentPersonId: null,
+  ready: false,
 };
 
-function loadData() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return defaultData();
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed.people || !parsed.pointRules) return defaultData();
-    return parsed;
-  } catch (error) {
-    return defaultData();
-  }
-}
-
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
-}
+let saveTimer = null;
 
 function uid(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -608,27 +606,80 @@ function setLockState(isLocked) {
   }
 }
 
-function unlockWithPin(pinInput) {
-  if (pinInput === ACCESS_PIN) {
-    sessionStorage.setItem(PIN_SESSION_KEY, "true");
-    setPinError("");
-    setLockState(false);
-    renderAll();
-    return true;
+async function loadRemoteData() {
+  const { data, error } = await supabase
+    .from("app_state")
+    .select("data")
+    .eq("key", CLOUD_KEY)
+    .maybeSingle();
+
+  if (error) {
+    console.error(error);
+    return null;
   }
-  setPinError("Incorrect PIN.");
-  return false;
+
+  if (!data) {
+    const payload = defaultData();
+    await supabase.from("app_state").upsert({
+      key: CLOUD_KEY,
+      data: payload,
+      updated_at: new Date().toISOString(),
+    });
+    return payload;
+  }
+
+  return data.data || defaultData();
+}
+
+function saveData() {
+  if (!state.ready) return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(persistData, 500);
+}
+
+async function persistData() {
+  if (!state.ready) return;
+  const payload = {
+    key: CLOUD_KEY,
+    data: state.data,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await supabase.from("app_state").upsert(payload);
+  if (error) console.error(error);
+}
+
+async function unlockWithPin(pinInput) {
+  if (pinInput !== ACCESS_PIN) {
+    setPinError("Incorrect PIN.");
+    return false;
+  }
+  if (!supabase) {
+    setPinError("Supabase client failed to initialize.");
+    return false;
+  }
+
+  setPinError("");
+  sessionStorage.setItem(PIN_SESSION_KEY, "true");
+
+  const remoteData = await loadRemoteData();
+  state.data = remoteData || defaultData();
+  state.ready = true;
+  setLockState(false);
+  renderAll();
+  return true;
 }
 
 function init() {
   const pinInput = document.getElementById("pin-input");
   const pinSubmit = document.getElementById("pin-submit");
 
-  const attemptUnlock = () => {
+  const attemptUnlock = async () => {
+    pinSubmit.disabled = true;
     const value = pinInput.value.trim();
     pinInput.value = "";
-    const ok = unlockWithPin(value);
+    const ok = await unlockWithPin(value);
     if (!ok) pinInput.focus();
+    pinSubmit.disabled = false;
   };
 
   pinSubmit.addEventListener("click", attemptUnlock);
@@ -638,14 +689,6 @@ function init() {
       attemptUnlock();
     }
   });
-
-  const unlocked = sessionStorage.getItem(PIN_SESSION_KEY) === "true";
-  setLockState(!unlocked);
-  if (unlocked) {
-    renderAll();
-  } else {
-    pinInput.focus();
-  }
 
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => switchTab(tab.dataset.tab));
@@ -759,6 +802,14 @@ function init() {
     saveData();
     renderAll();
   });
+
+  const unlocked = sessionStorage.getItem(PIN_SESSION_KEY) === "true";
+  if (unlocked) {
+    unlockWithPin(ACCESS_PIN);
+  } else {
+    setLockState(true);
+    pinInput.focus();
+  }
 }
 
 init();

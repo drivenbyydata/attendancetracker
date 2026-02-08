@@ -12,7 +12,7 @@
     <section id="pin-screen" class="auth-screen">
       <div class="card auth-card">
         <h2>Enter PIN</h2>
-        <p class="muted">Access is restricted. Enter your 4-digit PIN.</p>
+        <p class="muted">Access is restricted. Enter your 4-digit PIN to load cloud data.</p>
         <form id="pin-form" class="stack" novalidate>
           <div>
             <label for="pin-input">PIN</label>
@@ -184,10 +184,11 @@
       </main>
 
       <footer class="app-footer">
-        <p>Built for editable attendance tracking. Data is stored locally in your browser.</p>
+        <p>Built for editable attendance tracking. Data is stored in the cloud.</p>
       </footer>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
   </body>
 </html>
