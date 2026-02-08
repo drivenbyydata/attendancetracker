@@ -995,6 +995,7 @@ async function unlockWithPin(pinInput) {
 function init() {
   const pinInput = document.getElementById("pin-input");
   const pinSubmit = document.getElementById("pin-submit");
+  const pinForm = document.getElementById("pin-form");
   const dayModal = document.getElementById("day-modal");
   const dayModalClose = document.getElementById("day-modal-close");
   const backToPerson = document.getElementById("back-to-person");
@@ -1015,6 +1016,12 @@ function init() {
       attemptUnlock();
     }
   });
+  if (pinForm) {
+    pinForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      attemptUnlock();
+    });
+  }
 
   dayModalClose.addEventListener("click", closeDayModal);
   dayModal.addEventListener("click", (event) => {
