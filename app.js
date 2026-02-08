@@ -21,13 +21,16 @@ const MONTH_NAMES = [
 ];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-  },
-});
+const supabase =
+  window.supabase && typeof window.supabase.createClient === "function"
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      })
+    : null;
 
 const defaultData = () => ({
   settings: {
@@ -355,7 +358,12 @@ function renderPersonAttendance() {
       </div>
       <div>
         <label>Points</label>
-        <input type="number" value="${entry.pointsOverride ?? ""}" placeholder="Auto" data-field="points" />
+        <input
+          type="number"
+          value="${entry.pointsOverride === null || entry.pointsOverride === undefined ? "" : entry.pointsOverride}"
+          placeholder="Auto"
+          data-field="points"
+        />
       </div>
       <div>
         <label>Notes</label>
@@ -523,7 +531,7 @@ function renderPeopleTable() {
       if (!confirm(`Remove ${person.name}?`)) return;
       state.data.people = state.data.people.filter((p) => p.id !== person.id);
       if (state.currentPersonId === person.id) {
-        state.currentPersonId = state.data.people[0]?.id || null;
+        state.currentPersonId = state.data.people[0] ? state.data.people[0].id : null;
       }
       saveData();
       renderAll();
@@ -651,7 +659,7 @@ function renderPersonCalendar() {
   renderYearCalendar(container, year, (dateStr) => {
     const entry = entryMap.get(dateStr) || null;
     const rule = entry ? getRuleById(entry.ruleId) : null;
-    const color = entry ? rule?.color || "#5a5a5a" : null;
+    const color = entry ? (rule && rule.color ? rule.color : "#5a5a5a") : null;
     return {
       color,
       textColor: entry ? "#fff" : null,
@@ -714,13 +722,14 @@ function closeDayModal() {
 function openPersonDayModal(person, dateStr, entry) {
   const ruleOptions = state.data.pointRules
     .map((rule) => {
-      const selected = entry?.ruleId === rule.id ? "selected" : "";
+      const selected = entry && entry.ruleId === rule.id ? "selected" : "";
       return `<option value="${rule.id}" ${selected}>${rule.label} (${rule.points})</option>`;
     })
     .join("");
 
-  const pointsValue = entry?.pointsOverride ?? "";
-  const notesValue = entry?.notes || "";
+  const pointsValue =
+    entry && entry.pointsOverride !== null && entry.pointsOverride !== undefined ? entry.pointsOverride : "";
+  const notesValue = entry && entry.notes ? entry.notes : "";
 
   openDayModal(`
     <h3>${person.name} · ${dateStr}</h3>
