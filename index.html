@@ -252,6 +252,22 @@ const ACCESS_PIN = "1988";
 const PIN_SESSION_KEY = "attendance-tracker-pin-ok";
 const CLOUD_KEY = "attendance-tracker-main";
 
+function getSessionFlag(key) {
+  try {
+    return sessionStorage.getItem(key) === "true";
+  } catch (error) {
+    return false;
+  }
+}
+
+function setSessionFlag(key, value) {
+  try {
+    sessionStorage.setItem(key, value ? "true" : "false");
+  } catch (error) {
+    // Ignore storage errors (e.g. blocked storage in some environments).
+  }
+}
+
 const MONTH_NAMES = [
   "January",
   "February",
@@ -1239,7 +1255,7 @@ async function unlockWithPin(pinInput) {
   }
 
   setPinError("");
-  sessionStorage.setItem(PIN_SESSION_KEY, "true");
+  setSessionFlag(PIN_SESSION_KEY, true);
 
   state.data = remoteData;
   state.ready = true;
@@ -1405,7 +1421,7 @@ function init() {
     renderAll();
   });
 
-  const unlocked = sessionStorage.getItem(PIN_SESSION_KEY) === "true";
+  const unlocked = getSessionFlag(PIN_SESSION_KEY);
   if (unlocked) {
     unlockWithPin(ACCESS_PIN);
   } else {
