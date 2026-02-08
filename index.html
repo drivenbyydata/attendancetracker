@@ -13,7 +13,7 @@
       <div class="card auth-card">
         <h2>Enter PIN</h2>
         <p class="muted">Access is restricted. Enter your 4-digit PIN to load cloud data.</p>
-        <form id="pin-form" class="stack" novalidate>
+        <form id="pin-form" class="stack" novalidate onsubmit="return false;">
           <div>
             <label for="pin-input">PIN</label>
             <input
@@ -222,6 +222,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260208"></script>
   </body>
 </html>
