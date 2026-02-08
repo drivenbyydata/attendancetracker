@@ -233,6 +233,38 @@ main {
   gap: 16px;
 }
 
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.info-item {
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #f4f1ea;
+  border: 1px solid var(--border);
+}
+
+.info-item span {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.info-item p {
+  margin: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.info-item.full {
+  grid-column: 1 / -1;
+}
+
 .stat-label {
   margin: 0 0 6px;
   text-transform: uppercase;
@@ -274,6 +306,110 @@ main {
 .activity {
   display: grid;
   gap: 12px;
+}
+
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.month-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  background: #fff;
+}
+
+.month-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.day-cell {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  background: #f3f1eb;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.day-cell:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 16px rgba(22, 22, 22, 0.12);
+}
+
+.day-cell.empty {
+  background: transparent;
+  cursor: default;
+  box-shadow: none;
+}
+
+.day-cell.empty:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.day-cell.has-entry {
+  color: #fff;
+  font-weight: 600;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 16, 16, 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 5;
+  padding: 24px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  width: min(640px, 92vw);
+  max-height: 85vh;
+  overflow: auto;
+  position: relative;
+  box-shadow: var(--shadow);
+}
+
+.modal.large {
+  width: min(900px, 94vw);
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
 }
 
 .activity-item {
@@ -388,5 +524,9 @@ main {
   .tabs {
     position: static;
     flex-wrap: wrap;
+  }
+
+  .year-grid {
+    grid-template-columns: 1fr;
   }
 }

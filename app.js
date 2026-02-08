@@ -5,6 +5,22 @@ const ACCESS_PIN = "1988";
 const PIN_SESSION_KEY = "attendance-tracker-pin-ok";
 const CLOUD_KEY = "attendance-tracker-main";
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: false,
@@ -60,6 +76,19 @@ let saveTimer = null;
 
 function uid(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function pad(value) {
+  return String(value).padStart(2, "0");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function getRuleById(ruleId) {
@@ -133,31 +162,7 @@ function renderDashboard() {
     pointsPreview.appendChild(tag);
   });
 
-  const recentActivity = document.getElementById("recent-activity");
-  recentActivity.innerHTML = "";
-  const sorted = entries
-    .slice()
-    .sort((a, b) => new Date(b.entry.date || 0) - new Date(a.entry.date || 0))
-    .slice(0, 6);
-
-  if (sorted.length === 0) {
-    recentActivity.innerHTML = '<p class="muted">No activity yet. Add attendance entries to see them here.</p>';
-    return;
-  }
-
-  sorted.forEach((item) => {
-    const rule = getRuleById(item.entry.ruleId);
-    const card = document.createElement("div");
-    card.className = "activity-item";
-    card.innerHTML = `
-      <div>
-        <strong>${item.personName}</strong>
-        <div class="muted">${item.entry.date || "No date"} · ${rule ? rule.label : "Unknown"}</div>
-      </div>
-      <div><strong>${entryPoints(item.entry)}</strong> pts</div>
-    `;
-    recentActivity.appendChild(card);
-  });
+  renderDashboardCalendar();
 }
 
 function renderPersonSelect() {
@@ -198,6 +203,7 @@ function renderPersonDetails() {
     <div class="row between">
       <h2>${person.name}</h2>
       <div class="row">
+        <button id="update-person" class="secondary">Update Info</button>
         <button id="remove-person" class="ghost">Remove Person</button>
       </div>
     </div>
@@ -216,71 +222,50 @@ function renderPersonDetails() {
       </div>
     </div>
     <div class="divider"></div>
-    <div class="stack">
-      <div class="row">
-        <div>
-          <label for="person-name">Name</label>
-          <input id="person-name" type="text" value="${escapeHtml(person.name)}" />
-        </div>
-        <div>
-          <label for="person-role">Role</label>
-          <input id="person-role" type="text" value="${escapeHtml(person.role || "")}" />
-        </div>
+    <div class="info-grid">
+      <div class="info-item">
+        <span>Role</span>
+        <p>${escapeHtml(person.role || "-")}</p>
       </div>
-      <div class="row">
-        <div>
-          <label for="person-email">Email</label>
-          <input id="person-email" type="email" value="${escapeHtml(person.email || "")}" />
-        </div>
-        <div>
-          <label for="person-phone">Phone</label>
-          <input id="person-phone" type="text" value="${escapeHtml(person.phone || "")}" />
-        </div>
+      <div class="info-item">
+        <span>Email</span>
+        <p>${escapeHtml(person.email || "-")}</p>
       </div>
-      <div class="row">
-        <div>
-          <label for="person-status">Status</label>
-          <input id="person-status" type="text" value="${escapeHtml(person.status || "")}" />
-        </div>
-        <div>
-          <label for="person-start">Start Date</label>
-          <input id="person-start" type="date" value="${escapeHtml(person.startDate || "")}" />
-        </div>
+      <div class="info-item">
+        <span>Phone</span>
+        <p>${escapeHtml(person.phone || "-")}</p>
       </div>
-      <div class="row">
-        <div>
-          <label for="person-tags">Tags</label>
-          <input id="person-tags" type="text" value="${escapeHtml(person.tags || "")}" />
-        </div>
-        <div>
-          <label for="person-adjust">Manual Adjustment</label>
-          <input id="person-adjust" type="number" value="${person.adjustment || 0}" />
-        </div>
+      <div class="info-item">
+        <span>Start Date</span>
+        <p>${escapeHtml(person.startDate || "-")}</p>
       </div>
-      <div>
-        <label for="person-notes">Notes</label>
-        <textarea id="person-notes" rows="4">${escapeHtml(person.notes || "")}</textarea>
+      <div class="info-item">
+        <span>Tags</span>
+        <p>${escapeHtml(person.tags || "-")}</p>
+      </div>
+      <div class="info-item">
+        <span>Manual Adjustment</span>
+        <p>${person.adjustment || 0}</p>
+      </div>
+      <div class="info-item full">
+        <span>Notes</span>
+        <p>${escapeHtml(person.notes || "-")}</p>
       </div>
     </div>
   `;
+
+  container.querySelector("#update-person").addEventListener("click", () => {
+    openEditPanel(person);
+  });
 
   container.querySelector("#remove-person").addEventListener("click", () => {
     if (!confirm(`Remove ${person.name}? This cannot be undone.`)) return;
     state.data.people = state.data.people.filter((p) => p.id !== person.id);
     state.currentPersonId = state.data.people.length ? state.data.people[0].id : null;
     saveData();
+    closeEditPanel();
     renderAll();
   });
-
-  bindInput("person-name", (value) => (person.name = value));
-  bindInput("person-role", (value) => (person.role = value));
-  bindInput("person-email", (value) => (person.email = value));
-  bindInput("person-phone", (value) => (person.phone = value));
-  bindInput("person-status", (value) => (person.status = value));
-  bindInput("person-start", (value) => (person.startDate = value));
-  bindInput("person-tags", (value) => (person.tags = value));
-  bindInput("person-adjust", (value) => (person.adjustment = Number(value) || 0));
-  bindTextarea("person-notes", (value) => (person.notes = value));
 }
 
 function renderPersonAttendance() {
@@ -567,13 +552,343 @@ function bindTextarea(id, handler) {
   });
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+function bindScopedInput(container, selector, handler) {
+  const input = container.querySelector(selector);
+  if (!input) return;
+  input.addEventListener("change", (event) => {
+    handler(event.target.value);
+    saveData();
+    renderAll();
+  });
+}
+
+function bindScopedTextarea(container, selector, handler) {
+  const input = container.querySelector(selector);
+  if (!input) return;
+  input.addEventListener("change", (event) => {
+    handler(event.target.value);
+    saveData();
+    renderAll();
+  });
+}
+
+function renderYearCalendar(container, year, getMeta) {
+  if (!container) return;
+  container.innerHTML = "";
+
+  for (let monthIndex = 0; monthIndex < 12; monthIndex += 1) {
+    const monthCard = document.createElement("div");
+    monthCard.className = "month-card";
+
+    const header = document.createElement("div");
+    header.className = "month-header";
+    header.innerHTML = `<span>${MONTH_NAMES[monthIndex]}</span><span>${year}</span>`;
+
+    const grid = document.createElement("div");
+    grid.className = "month-grid";
+
+    WEEKDAYS.forEach((day) => {
+      const label = document.createElement("div");
+      label.className = "weekday";
+      label.textContent = day;
+      grid.appendChild(label);
+    });
+
+    const firstDay = new Date(year, monthIndex, 1).getDay();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i += 1) {
+      const empty = document.createElement("div");
+      empty.className = "day-cell empty";
+      grid.appendChild(empty);
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const dateStr = `${year}-${pad(monthIndex + 1)}-${pad(day)}`;
+      const meta = getMeta(dateStr, monthIndex, day) || {};
+      const cell = document.createElement("div");
+      cell.className = "day-cell";
+      cell.textContent = day;
+
+      if (meta.color) {
+        cell.style.background = meta.color;
+      }
+      if (meta.textColor) {
+        cell.style.color = meta.textColor;
+      }
+      if (meta.hasEntry) {
+        cell.classList.add("has-entry");
+      }
+      if (meta.onClick) {
+        cell.addEventListener("click", meta.onClick);
+      }
+
+      grid.appendChild(cell);
+    }
+
+    monthCard.appendChild(header);
+    monthCard.appendChild(grid);
+    container.appendChild(monthCard);
+  }
+}
+
+function renderPersonCalendar() {
+  const container = document.getElementById("person-calendar");
+  const person = state.data.people.find((p) => p.id === state.currentPersonId);
+
+  if (!person) {
+    if (container) container.innerHTML = '<p class="muted">Select a person to view the calendar.</p>';
+    return;
+  }
+
+  const entryMap = new Map();
+  person.attendance.forEach((entry) => {
+    if (entry.date) entryMap.set(entry.date, entry);
+  });
+
+  const year = new Date().getFullYear();
+  renderYearCalendar(container, year, (dateStr) => {
+    const entry = entryMap.get(dateStr) || null;
+    const rule = entry ? getRuleById(entry.ruleId) : null;
+    const color = entry ? rule?.color || "#5a5a5a" : null;
+    return {
+      color,
+      textColor: entry ? "#fff" : null,
+      hasEntry: Boolean(entry),
+      onClick: () => openPersonDayModal(person, dateStr, entry),
+    };
+  });
+}
+
+function renderDashboardCalendar() {
+  const container = document.getElementById("dashboard-calendar");
+  if (!container) return;
+
+  const entryMap = new Map();
+  state.data.people.forEach((person) => {
+    person.attendance.forEach((entry) => {
+      if (!entry.date) return;
+      const list = entryMap.get(entry.date) || [];
+      list.push({
+        personName: person.name,
+        entry,
+        rule: getRuleById(entry.ruleId),
+      });
+      entryMap.set(entry.date, list);
+    });
+  });
+
+  const counts = Array.from(entryMap.values()).map((list) => list.length);
+  const maxCount = counts.length ? Math.max(...counts) : 0;
+  const year = new Date().getFullYear();
+
+  renderYearCalendar(container, year, (dateStr) => {
+    const entries = entryMap.get(dateStr) || [];
+    let color = null;
+    if (entries.length) {
+      const intensity = maxCount ? 0.2 + (entries.length / maxCount) * 0.7 : 0.4;
+      color = `rgba(15, 159, 147, ${intensity.toFixed(2)})`;
+    }
+    return {
+      color,
+      textColor: entries.length ? "#fff" : null,
+      hasEntry: entries.length > 0,
+      onClick: () => openDashboardDayModal(dateStr, entries),
+    };
+  });
+}
+
+function openDayModal(contentHtml) {
+  const overlay = document.getElementById("day-modal");
+  const content = document.getElementById("day-modal-content");
+  content.innerHTML = contentHtml;
+  overlay.hidden = false;
+}
+
+function closeDayModal() {
+  const overlay = document.getElementById("day-modal");
+  overlay.hidden = true;
+}
+
+function openPersonDayModal(person, dateStr, entry) {
+  const ruleOptions = state.data.pointRules
+    .map((rule) => {
+      const selected = entry?.ruleId === rule.id ? "selected" : "";
+      return `<option value="${rule.id}" ${selected}>${rule.label} (${rule.points})</option>`;
+    })
+    .join("");
+
+  const pointsValue = entry?.pointsOverride ?? "";
+  const notesValue = entry?.notes || "";
+
+  openDayModal(`
+    <h3>${person.name} · ${dateStr}</h3>
+    <form id="day-entry-form" class="stack">
+      <div>
+        <label for="modal-rule">Status</label>
+        <select id="modal-rule">${ruleOptions}</select>
+      </div>
+      <div>
+        <label for="modal-points">Points Override</label>
+        <input id="modal-points" type="number" value="${pointsValue}" placeholder="Auto" />
+      </div>
+      <div>
+        <label for="modal-notes">Notes</label>
+        <textarea id="modal-notes" rows="3">${escapeHtml(notesValue)}</textarea>
+      </div>
+      <div class="row">
+        <button class="primary" type="submit">Save</button>
+        ${entry ? '<button id="modal-remove" class="ghost" type="button">Remove Entry</button>' : ""}
+      </div>
+    </form>
+  `);
+
+  const form = document.getElementById("day-entry-form");
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const ruleId = document.getElementById("modal-rule").value;
+    const pointsOverrideRaw = document.getElementById("modal-points").value;
+    const notes = document.getElementById("modal-notes").value;
+
+    if (entry) {
+      entry.ruleId = ruleId;
+      entry.pointsOverride = pointsOverrideRaw === "" ? null : Number(pointsOverrideRaw);
+      entry.notes = notes;
+    } else {
+      person.attendance.unshift({
+        id: uid("entry"),
+        date: dateStr,
+        ruleId,
+        pointsOverride: pointsOverrideRaw === "" ? null : Number(pointsOverrideRaw),
+        notes,
+      });
+    }
+    saveData();
+    renderAll();
+    closeDayModal();
+  });
+
+  const removeButton = document.getElementById("modal-remove");
+  if (removeButton && entry) {
+    removeButton.addEventListener("click", () => {
+      person.attendance = person.attendance.filter((item) => item.id !== entry.id);
+      saveData();
+      renderAll();
+      closeDayModal();
+    });
+  }
+}
+
+function openDashboardDayModal(dateStr, entries) {
+  if (!entries.length) {
+    openDayModal(`
+      <h3>${dateStr}</h3>
+      <p class="muted">No attendance entries recorded.</p>
+    `);
+    return;
+  }
+
+  const rows = entries
+    .map((item) => {
+      const ruleLabel = item.rule ? item.rule.label : "Unknown";
+      const points = entryPoints(item.entry);
+      return `
+        <div class="table-row">
+          <div>
+            <label>Person</label>
+            <div>${escapeHtml(item.personName)}</div>
+          </div>
+          <div>
+            <label>Status</label>
+            <div>${escapeHtml(ruleLabel)}</div>
+          </div>
+          <div>
+            <label>Points</label>
+            <div>${points}</div>
+          </div>
+          <div>
+            <label>Notes</label>
+            <div>${escapeHtml(item.entry.notes || "-")}</div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  openDayModal(`
+    <h3>${dateStr} · All People</h3>
+    <div class="stack">${rows}</div>
+  `);
+}
+
+function openEditPanel(person) {
+  const overlay = document.getElementById("edit-overlay");
+  const content = document.getElementById("edit-content");
+
+  content.innerHTML = `
+    <p class="muted">Changes save automatically.</p>
+    <div class="row">
+      <div>
+        <label for="edit-name">Name</label>
+        <input id="edit-name" type="text" value="${escapeHtml(person.name)}" />
+      </div>
+      <div>
+        <label for="edit-role">Role</label>
+        <input id="edit-role" type="text" value="${escapeHtml(person.role || "")}" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="edit-email">Email</label>
+        <input id="edit-email" type="email" value="${escapeHtml(person.email || "")}" />
+      </div>
+      <div>
+        <label for="edit-phone">Phone</label>
+        <input id="edit-phone" type="text" value="${escapeHtml(person.phone || "")}" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="edit-status">Status</label>
+        <input id="edit-status" type="text" value="${escapeHtml(person.status || "")}" />
+      </div>
+      <div>
+        <label for="edit-start">Start Date</label>
+        <input id="edit-start" type="date" value="${escapeHtml(person.startDate || "")}" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="edit-tags">Tags</label>
+        <input id="edit-tags" type="text" value="${escapeHtml(person.tags || "")}" />
+      </div>
+      <div>
+        <label for="edit-adjust">Manual Adjustment</label>
+        <input id="edit-adjust" type="number" value="${person.adjustment || 0}" />
+      </div>
+    </div>
+    <div>
+      <label for="edit-notes">Notes</label>
+      <textarea id="edit-notes" rows="4">${escapeHtml(person.notes || "")}</textarea>
+    </div>
+  `;
+
+  bindScopedInput(content, "#edit-name", (value) => (person.name = value));
+  bindScopedInput(content, "#edit-role", (value) => (person.role = value));
+  bindScopedInput(content, "#edit-email", (value) => (person.email = value));
+  bindScopedInput(content, "#edit-phone", (value) => (person.phone = value));
+  bindScopedInput(content, "#edit-status", (value) => (person.status = value));
+  bindScopedInput(content, "#edit-start", (value) => (person.startDate = value));
+  bindScopedInput(content, "#edit-tags", (value) => (person.tags = value));
+  bindScopedInput(content, "#edit-adjust", (value) => (person.adjustment = Number(value) || 0));
+  bindScopedTextarea(content, "#edit-notes", (value) => (person.notes = value));
+
+  overlay.hidden = false;
+}
+
+function closeEditPanel() {
+  const overlay = document.getElementById("edit-overlay");
+  overlay.hidden = true;
 }
 
 function renderAll() {
@@ -587,6 +902,7 @@ function renderAll() {
   renderPersonAttendance();
   renderPointsTable();
   renderPeopleTable();
+  renderPersonCalendar();
 }
 
 function setPinError(message) {
@@ -620,11 +936,12 @@ async function loadRemoteData() {
 
   if (!data) {
     const payload = defaultData();
-    await supabase.from("app_state").upsert({
+    const { error: insertError } = await supabase.from("app_state").upsert({
       key: CLOUD_KEY,
       data: payload,
       updated_at: new Date().toISOString(),
     });
+    if (insertError) console.error(insertError);
     return payload;
   }
 
@@ -658,11 +975,16 @@ async function unlockWithPin(pinInput) {
     return false;
   }
 
+  const remoteData = await loadRemoteData();
+  if (!remoteData) {
+    setPinError("Cloud data unavailable. Check Supabase setup.");
+    return false;
+  }
+
   setPinError("");
   sessionStorage.setItem(PIN_SESSION_KEY, "true");
 
-  const remoteData = await loadRemoteData();
-  state.data = remoteData || defaultData();
+  state.data = remoteData;
   state.ready = true;
   setLockState(false);
   renderAll();
@@ -672,6 +994,10 @@ async function unlockWithPin(pinInput) {
 function init() {
   const pinInput = document.getElementById("pin-input");
   const pinSubmit = document.getElementById("pin-submit");
+  const dayModal = document.getElementById("day-modal");
+  const dayModalClose = document.getElementById("day-modal-close");
+  const editOverlay = document.getElementById("edit-overlay");
+  const editClose = document.getElementById("edit-close");
 
   const attemptUnlock = async () => {
     pinSubmit.disabled = true;
@@ -688,6 +1014,16 @@ function init() {
       event.preventDefault();
       attemptUnlock();
     }
+  });
+
+  dayModalClose.addEventListener("click", closeDayModal);
+  dayModal.addEventListener("click", (event) => {
+    if (event.target === dayModal) closeDayModal();
+  });
+
+  editClose.addEventListener("click", closeEditPanel);
+  editOverlay.addEventListener("click", (event) => {
+    if (event.target === editOverlay) closeEditPanel();
   });
 
   document.querySelectorAll(".tab").forEach((tab) => {

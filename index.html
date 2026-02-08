@@ -93,8 +93,11 @@
           </article>
         </div>
         <article class="card">
-          <h2>Recent Activity</h2>
-          <div id="recent-activity" class="activity"></div>
+          <div class="row between">
+            <h2>Yearly Attendance Map</h2>
+            <div class="muted">All people combined</div>
+          </div>
+          <div id="dashboard-calendar" class="year-grid"></div>
         </article>
       </section>
 
@@ -116,6 +119,13 @@
           <article class="card" id="person-details"></article>
           <article class="card" id="person-attendance"></article>
         </div>
+        <article class="card">
+          <div class="row between">
+            <h2>Yearly Calendar</h2>
+            <div class="muted">Click a date to view or edit details.</div>
+          </div>
+          <div id="person-calendar" class="year-grid"></div>
+        </article>
       </section>
 
       <section id="points" class="tab-panel">
@@ -182,6 +192,23 @@
         </article>
       </section>
       </main>
+
+      <div id="edit-overlay" class="modal-overlay" hidden>
+        <div class="modal large">
+          <div class="row between">
+            <h2>Edit Person</h2>
+            <button id="edit-close" class="ghost">Close</button>
+          </div>
+          <div id="edit-content" class="stack"></div>
+        </div>
+      </div>
+
+      <div id="day-modal" class="modal-overlay" hidden>
+        <div class="modal">
+          <button id="day-modal-close" class="modal-close" aria-label="Close">×</button>
+          <div id="day-modal-content" class="stack"></div>
+        </div>
+      </div>
 
       <footer class="app-footer">
         <p>Built for editable attendance tracking. Data is stored in the cloud.</p>

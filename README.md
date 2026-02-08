@@ -37,6 +37,13 @@ for update using (true) with check (true);
 
 4. Update `/Users/jahromemissick/Documents/New project/app.js` with your URL and key.
 
+## Features
+
+- **Person Hub**: Select a person and click **Update Info** to edit their full profile on a dedicated screen.
+- **Yearly Calendar**: 12-month calendar for each person with color-coded attendance by date.
+- **Dashboard Calendar**: 12-month overview showing all attendance entries for everyone.
+- **Day Detail Modal**: Click any date to view or edit details, with a close (X) button.
+
 ## Quick Start
 
 1. Open `index.html` or your GitHub Pages URL.
