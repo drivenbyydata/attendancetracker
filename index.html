@@ -49,6 +49,7 @@
       <nav class="tabs" aria-label="Primary">
         <button class="tab active" data-tab="dashboard">Dashboard</button>
         <button class="tab" data-tab="person-hub">Person Hub</button>
+        <button class="tab" data-tab="person-edit">Update Info</button>
         <button class="tab" data-tab="points">Point System</button>
         <button class="tab" data-tab="admin">Admin</button>
       </nav>
@@ -128,6 +129,21 @@
         </article>
       </section>
 
+      <section id="person-edit" class="tab-panel">
+        <article class="card">
+          <div class="row between">
+            <div>
+              <h2>Update Info</h2>
+              <p class="muted">Edit all details for the selected person.</p>
+            </div>
+            <div class="row">
+              <button id="back-to-person" class="ghost">Back to Person Hub</button>
+            </div>
+          </div>
+          <div id="edit-content" class="stack"></div>
+        </article>
+      </section>
+
       <section id="points" class="tab-panel">
         <article class="card">
           <div class="row between">
@@ -192,16 +208,6 @@
         </article>
       </section>
       </main>
-
-      <div id="edit-overlay" class="modal-overlay" hidden>
-        <div class="modal large">
-          <div class="row between">
-            <h2>Edit Person</h2>
-            <button id="edit-close" class="ghost">Close</button>
-          </div>
-          <div id="edit-content" class="stack"></div>
-        </div>
-      </div>
 
       <div id="day-modal" class="modal-overlay" hidden>
         <div class="modal">

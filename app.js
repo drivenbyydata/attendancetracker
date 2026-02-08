@@ -255,7 +255,8 @@ function renderPersonDetails() {
   `;
 
   container.querySelector("#update-person").addEventListener("click", () => {
-    openEditPanel(person);
+    switchTab("person-edit");
+    renderPersonEdit();
   });
 
   container.querySelector("#remove-person").addEventListener("click", () => {
@@ -263,8 +264,8 @@ function renderPersonDetails() {
     state.data.people = state.data.people.filter((p) => p.id !== person.id);
     state.currentPersonId = state.data.people.length ? state.data.people[0].id : null;
     saveData();
-    closeEditPanel();
     renderAll();
+    switchTab("person-hub");
   });
 }
 
@@ -821,9 +822,15 @@ function openDashboardDayModal(dateStr, entries) {
   `);
 }
 
-function openEditPanel(person) {
-  const overlay = document.getElementById("edit-overlay");
+function renderPersonEdit() {
   const content = document.getElementById("edit-content");
+  const person = state.data.people.find((p) => p.id === state.currentPersonId);
+
+  if (!content) return;
+  if (!person) {
+    content.innerHTML = '<p class="muted">Select a person in Person Hub first.</p>';
+    return;
+  }
 
   content.innerHTML = `
     <p class="muted">Changes save automatically.</p>
@@ -882,13 +889,6 @@ function openEditPanel(person) {
   bindScopedInput(content, "#edit-tags", (value) => (person.tags = value));
   bindScopedInput(content, "#edit-adjust", (value) => (person.adjustment = Number(value) || 0));
   bindScopedTextarea(content, "#edit-notes", (value) => (person.notes = value));
-
-  overlay.hidden = false;
-}
-
-function closeEditPanel() {
-  const overlay = document.getElementById("edit-overlay");
-  overlay.hidden = true;
 }
 
 function renderAll() {
@@ -903,6 +903,7 @@ function renderAll() {
   renderPointsTable();
   renderPeopleTable();
   renderPersonCalendar();
+  renderPersonEdit();
 }
 
 function setPinError(message) {
@@ -996,8 +997,7 @@ function init() {
   const pinSubmit = document.getElementById("pin-submit");
   const dayModal = document.getElementById("day-modal");
   const dayModalClose = document.getElementById("day-modal-close");
-  const editOverlay = document.getElementById("edit-overlay");
-  const editClose = document.getElementById("edit-close");
+  const backToPerson = document.getElementById("back-to-person");
 
   const attemptUnlock = async () => {
     pinSubmit.disabled = true;
@@ -1021,10 +1021,11 @@ function init() {
     if (event.target === dayModal) closeDayModal();
   });
 
-  editClose.addEventListener("click", closeEditPanel);
-  editOverlay.addEventListener("click", (event) => {
-    if (event.target === editOverlay) closeEditPanel();
-  });
+  if (backToPerson) {
+    backToPerson.addEventListener("click", () => {
+      switchTab("person-hub");
+    });
+  }
 
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => switchTab(tab.dataset.tab));
