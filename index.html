@@ -13,7 +13,7 @@
       <div class="card auth-card">
         <h2>Enter PIN</h2>
         <p class="muted">Access is restricted. Enter your 4-digit PIN.</p>
-        <form id="pin-form" class="stack">
+        <form id="pin-form" class="stack" novalidate>
           <div>
             <label for="pin-input">PIN</label>
             <input
@@ -25,7 +25,7 @@
               required
             />
           </div>
-          <button class="primary" type="submit">Unlock</button>
+          <button id="pin-submit" class="primary" type="button">Unlock</button>
         </form>
         <p id="pin-error" class="muted error"></p>
       </div>

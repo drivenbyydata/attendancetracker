@@ -621,15 +621,22 @@ function unlockWithPin(pinInput) {
 }
 
 function init() {
-  const pinForm = document.getElementById("pin-form");
   const pinInput = document.getElementById("pin-input");
+  const pinSubmit = document.getElementById("pin-submit");
 
-  pinForm.addEventListener("submit", (event) => {
-    event.preventDefault();
+  const attemptUnlock = () => {
     const value = pinInput.value.trim();
     pinInput.value = "";
     const ok = unlockWithPin(value);
     if (!ok) pinInput.focus();
+  };
+
+  pinSubmit.addEventListener("click", attemptUnlock);
+  pinInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      attemptUnlock();
+    }
   });
 
   const unlocked = sessionStorage.getItem(PIN_SESSION_KEY) === "true";
