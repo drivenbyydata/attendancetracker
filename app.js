@@ -1,6 +1,6 @@
 const SUPABASE_URL = "https://ryeidiawdqejwpvzxhnp.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_44bO8u3pthKzdzXLy1298Q_7Xg8pYwg";
-const ALLOWED_EMAIL = "jahrome.miss@gmail.com";
+const ALLOWED_EMAILS = ["jahrome.miss@gmail.com"];
 
 const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -57,6 +57,15 @@ let saveTimer = null;
 
 function uid(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function isAuthorizedEmail(email) {
+  const normalized = normalizeEmail(email);
+  return ALLOWED_EMAILS.map((item) => normalizeEmail(item)).includes(normalized);
 }
 
 function getRuleById(ruleId) {
@@ -646,8 +655,8 @@ async function persistData() {
 }
 
 async function handleAuthUser(user) {
-  if (user.email !== ALLOWED_EMAIL) {
-    setAuthError("This account is not authorized for this workspace.");
+  if (!isAuthorizedEmail(user.email)) {
+    setAuthError(`This account (${user.email || "unknown"}) is not authorized for this workspace.`);
     await supabase.auth.signOut();
     setAuthUI(null);
     return;
@@ -667,7 +676,7 @@ async function init() {
   const loginForm = document.getElementById("login-form");
   const signOutButton = document.getElementById("sign-out");
 
-  if (loginEmail) loginEmail.value = ALLOWED_EMAIL;
+  if (loginEmail) loginEmail.value = ALLOWED_EMAILS[0] || "";
 
   if (!SUPABASE_URL.includes("YOUR_SUPABASE_URL") && !SUPABASE_ANON_KEY.includes("YOUR_SUPABASE_ANON_KEY")) {
     setAuthError("");
