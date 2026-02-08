@@ -9,22 +9,25 @@
   <body>
     <div class="bg-shapes" aria-hidden="true"></div>
 
-    <section id="auth-screen" class="auth-screen">
+    <section id="pin-screen" class="auth-screen">
       <div class="card auth-card">
-        <h2>Sign In</h2>
-        <p class="muted">Access is restricted to your authorized account.</p>
-        <form id="login-form" class="stack">
+        <h2>Enter PIN</h2>
+        <p class="muted">Access is restricted. Enter your 4-digit PIN.</p>
+        <form id="pin-form" class="stack">
           <div>
-            <label for="login-email">Email</label>
-            <input id="login-email" type="email" autocomplete="username" required />
+            <label for="pin-input">PIN</label>
+            <input
+              id="pin-input"
+              type="password"
+              inputmode="numeric"
+              pattern="\\d{4}"
+              maxlength="4"
+              required
+            />
           </div>
-          <div>
-            <label for="login-password">Password</label>
-            <input id="login-password" type="password" autocomplete="current-password" required />
-          </div>
-          <button class="primary" type="submit">Sign In</button>
+          <button class="primary" type="submit">Unlock</button>
         </form>
-        <p id="auth-error" class="muted error"></p>
+        <p id="pin-error" class="muted error"></p>
       </div>
     </section>
 
@@ -40,13 +43,6 @@
         <div class="org">
           <label for="org-name">Organization</label>
           <input id="org-name" type="text" placeholder="Add your organization name" />
-        </div>
-        <div class="user-bar">
-          <div>
-            <label>Signed In</label>
-            <div id="user-email" class="user-email">-</div>
-          </div>
-          <button id="sign-out" class="ghost">Sign Out</button>
         </div>
       </header>
 
@@ -188,11 +184,10 @@
       </main>
 
       <footer class="app-footer">
-        <p>Built for editable attendance tracking. Data is stored securely in the cloud.</p>
+        <p>Built for editable attendance tracking. Data is stored locally in your browser.</p>
       </footer>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
   </body>
 </html>

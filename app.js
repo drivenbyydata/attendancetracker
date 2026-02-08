@@ -1,14 +1,6 @@
-const SUPABASE_URL = "https://ryeidiawdqejwpvzxhnp.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_44bO8u3pthKzdzXLy1298Q_7Xg8pYwg";
-const ALLOWED_EMAILS = ["jahrome.miss@gmail.com"];
-
-const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-  },
-});
+const STORAGE_KEY = "attendance-tracker-data-v1";
+const ACCESS_PIN = "1988";
+const PIN_SESSION_KEY = "attendance-tracker-pin-ok";
 
 const defaultData = () => ({
   settings: {
@@ -48,24 +40,28 @@ const defaultData = () => ({
 });
 
 const state = {
-  data: defaultData(),
+  data: loadData(),
   currentPersonId: null,
-  user: null,
 };
 
-let saveTimer = null;
+function loadData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return defaultData();
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed.people || !parsed.pointRules) return defaultData();
+    return parsed;
+  } catch (error) {
+    return defaultData();
+  }
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+}
 
 function uid(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function normalizeEmail(email) {
-  return String(email || "").trim().toLowerCase();
-}
-
-function isAuthorizedEmail(email) {
-  const normalized = normalizeEmail(email);
-  return ALLOWED_EMAILS.map((item) => normalizeEmail(item)).includes(normalized);
 }
 
 function getRuleById(ruleId) {
@@ -595,135 +591,54 @@ function renderAll() {
   renderPeopleTable();
 }
 
-function setAuthError(message) {
-  const target = document.getElementById("auth-error");
+function setPinError(message) {
+  const target = document.getElementById("pin-error");
   if (target) target.textContent = message || "";
 }
 
-function setAuthUI(user) {
-  const authScreen = document.getElementById("auth-screen");
+function setLockState(isLocked) {
+  const pinScreen = document.getElementById("pin-screen");
   const app = document.getElementById("app");
-  const emailLabel = document.getElementById("user-email");
-
-  if (user) {
-    authScreen.style.display = "none";
-    app.hidden = false;
-    emailLabel.textContent = user.email || "";
-  } else {
-    authScreen.style.display = "grid";
+  if (isLocked) {
+    pinScreen.style.display = "grid";
     app.hidden = true;
-    emailLabel.textContent = "-";
-  }
-}
-
-async function loadRemoteData(userId) {
-  const { data, error } = await supabase
-    .from("app_state")
-    .select("data")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error(error);
-    return null;
-  }
-
-  if (!data) {
-    const payload = defaultData();
-    await supabase.from("app_state").upsert({ user_id: userId, data: payload });
-    return payload;
-  }
-
-  return data.data || defaultData();
-}
-
-function saveData() {
-  if (!state.user) return;
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(persistData, 500);
-}
-
-async function persistData() {
-  if (!state.user) return;
-  const payload = {
-    user_id: state.user.id,
-    data: state.data,
-    updated_at: new Date().toISOString(),
-  };
-  const { error } = await supabase.from("app_state").upsert(payload);
-  if (error) console.error(error);
-}
-
-async function handleAuthUser(user) {
-  if (!isAuthorizedEmail(user.email)) {
-    setAuthError(`This account (${user.email || "unknown"}) is not authorized for this workspace.`);
-    await supabase.auth.signOut();
-    setAuthUI(null);
-    return;
-  }
-
-  state.user = user;
-  setAuthUI(user);
-
-  const remoteData = await loadRemoteData(user.id);
-  state.data = remoteData || defaultData();
-  renderAll();
-}
-
-async function init() {
-  const loginEmail = document.getElementById("login-email");
-  const loginPassword = document.getElementById("login-password");
-  const loginForm = document.getElementById("login-form");
-  const signOutButton = document.getElementById("sign-out");
-
-  if (loginEmail) loginEmail.value = ALLOWED_EMAILS[0] || "";
-
-  if (!SUPABASE_URL.includes("YOUR_SUPABASE_URL") && !SUPABASE_ANON_KEY.includes("YOUR_SUPABASE_ANON_KEY")) {
-    setAuthError("");
   } else {
-    setAuthError("Add your Supabase URL + anon key in app.js to enable sign in.");
+    pinScreen.style.display = "none";
+    app.hidden = false;
   }
+}
 
-  if (!supabase) {
-    setAuthError("Supabase client failed to initialize. Check the CDN script tag.");
-    return;
+function unlockWithPin(pinInput) {
+  if (pinInput === ACCESS_PIN) {
+    sessionStorage.setItem(PIN_SESSION_KEY, "true");
+    setPinError("");
+    setLockState(false);
+    renderAll();
+    return true;
   }
+  setPinError("Incorrect PIN.");
+  return false;
+}
 
-  loginForm.addEventListener("submit", async (event) => {
+function init() {
+  const pinForm = document.getElementById("pin-form");
+  const pinInput = document.getElementById("pin-input");
+
+  pinForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    setAuthError("");
-    if (!supabase) {
-      setAuthError("Supabase client failed to initialize.");
-      return;
-    }
-    if (SUPABASE_URL.includes("YOUR_SUPABASE_URL") || SUPABASE_ANON_KEY.includes("YOUR_SUPABASE_ANON_KEY")) {
-      setAuthError("Supabase keys are not configured yet.");
-      return;
-    }
-
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value.trim();
-    if (!email || !password) {
-      setAuthError("Enter your email and password.");
-      return;
-    }
-
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setAuthError(error.message);
-      return;
-    }
-
-    if (data?.user) {
-      await handleAuthUser(data.user);
-    }
+    const value = pinInput.value.trim();
+    pinInput.value = "";
+    const ok = unlockWithPin(value);
+    if (!ok) pinInput.focus();
   });
 
-  signOutButton.addEventListener("click", async () => {
-    await supabase.auth.signOut();
-    state.user = null;
-    setAuthUI(null);
-  });
+  const unlocked = sessionStorage.getItem(PIN_SESSION_KEY) === "true";
+  setLockState(!unlocked);
+  if (unlocked) {
+    renderAll();
+  } else {
+    pinInput.focus();
+  }
 
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => switchTab(tab.dataset.tab));
@@ -837,22 +752,6 @@ async function init() {
     saveData();
     renderAll();
   });
-
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (session?.user) {
-      await handleAuthUser(session.user);
-    } else {
-      state.user = null;
-      setAuthUI(null);
-    }
-  });
-
-  const { data } = await supabase.auth.getUser();
-  if (data?.user) {
-    await handleAuthUser(data.user);
-  } else {
-    setAuthUI(null);
-  }
 }
 
 init();
