@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Attendance Tracker</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-shapes" aria-hidden="true"></div>
+
+    <section id="auth-screen" class="auth-screen">
+      <div class="card auth-card">
+        <h2>Sign In</h2>
+        <p class="muted">Access is restricted to your authorized account.</p>
+        <form id="login-form" class="stack">
+          <div>
+            <label for="login-email">Email</label>
+            <input id="login-email" type="email" autocomplete="username" required />
+          </div>
+          <div>
+            <label for="login-password">Password</label>
+            <input id="login-password" type="password" autocomplete="current-password" required />
+          </div>
+          <button class="primary" type="submit">Sign In</button>
+        </form>
+        <p id="auth-error" class="muted error"></p>
+      </div>
+    </section>
+
+    <div id="app" class="app" hidden>
+      <header class="app-header">
+        <div class="brand">
+          <div class="logo">AT</div>
+          <div class="brand-text">
+            <h1>Attendance Tracker</h1>
+            <p>Editable, transparent, and built for quick decisions.</p>
+          </div>
+        </div>
+        <div class="org">
+          <label for="org-name">Organization</label>
+          <input id="org-name" type="text" placeholder="Add your organization name" />
+        </div>
+        <div class="user-bar">
+          <div>
+            <label>Signed In</label>
+            <div id="user-email" class="user-email">-</div>
+          </div>
+          <button id="sign-out" class="ghost">Sign Out</button>
+        </div>
+      </header>
+
+      <nav class="tabs" aria-label="Primary">
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="person-hub">Person Hub</button>
+        <button class="tab" data-tab="points">Point System</button>
+        <button class="tab" data-tab="admin">Admin</button>
+      </nav>
+
+      <main>
+      <section id="dashboard" class="tab-panel active">
+        <div class="grid two">
+          <article class="card">
+            <h2>Today at a Glance</h2>
+            <div class="stats">
+              <div>
+                <p class="stat-label">Total People</p>
+                <p class="stat-value" id="stat-people">0</p>
+              </div>
+              <div>
+                <p class="stat-label">Attendance Entries</p>
+                <p class="stat-value" id="stat-entries">0</p>
+              </div>
+              <div>
+                <p class="stat-label">Average Points</p>
+                <p class="stat-value" id="stat-average">0</p>
+              </div>
+            </div>
+            <div class="divider"></div>
+            <div class="row">
+              <div>
+                <label for="filter-from">From</label>
+                <input id="filter-from" type="date" />
+              </div>
+              <div>
+                <label for="filter-to">To</label>
+                <input id="filter-to" type="date" />
+              </div>
+              <button id="apply-filter" class="secondary">Apply Filter</button>
+              <button id="clear-filter" class="ghost">Clear</button>
+            </div>
+          </article>
+          <article class="card">
+            <h2>Point System Snapshot</h2>
+            <div id="points-preview" class="tag-grid"></div>
+            <p class="muted">Edit point values in the Point System tab. Changes apply instantly.</p>
+          </article>
+        </div>
+        <article class="card">
+          <h2>Recent Activity</h2>
+          <div id="recent-activity" class="activity"></div>
+        </article>
+      </section>
+
+      <section id="person-hub" class="tab-panel">
+        <article class="card">
+          <div class="row between">
+            <div>
+              <h2>Person Hub</h2>
+              <p class="muted">Choose a person to view and edit everything in one place.</p>
+            </div>
+            <div class="row">
+              <label for="person-select">Select Person</label>
+              <select id="person-select"></select>
+            </div>
+          </div>
+        </article>
+
+        <div class="grid two">
+          <article class="card" id="person-details"></article>
+          <article class="card" id="person-attendance"></article>
+        </div>
+      </section>
+
+      <section id="points" class="tab-panel">
+        <article class="card">
+          <div class="row between">
+            <div>
+              <h2>Point System</h2>
+              <p class="muted">Every rule is editable. Use labels your team already understands.</p>
+            </div>
+            <button id="add-rule" class="secondary">Add Rule</button>
+          </div>
+          <div id="points-table"></div>
+        </article>
+      </section>
+
+      <section id="admin" class="tab-panel">
+        <div class="grid two">
+          <article class="card">
+            <h2>People Management</h2>
+            <form id="add-person-form" class="stack">
+              <div class="row">
+                <div>
+                  <label for="new-name">Name</label>
+                  <input id="new-name" type="text" required />
+                </div>
+                <div>
+                  <label for="new-role">Role</label>
+                  <input id="new-role" type="text" />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="new-email">Email</label>
+                  <input id="new-email" type="email" />
+                </div>
+                <div>
+                  <label for="new-phone">Phone</label>
+                  <input id="new-phone" type="text" />
+                </div>
+              </div>
+              <div>
+                <label for="new-notes">Notes</label>
+                <textarea id="new-notes" rows="3"></textarea>
+              </div>
+              <button type="submit" class="primary">Add Person</button>
+            </form>
+          </article>
+
+          <article class="card">
+            <h2>Import / Export</h2>
+            <div class="stack">
+              <button id="export-data" class="secondary">Export Data (JSON)</button>
+              <label class="file-label" for="import-data">Import Data (JSON)</label>
+              <input id="import-data" type="file" accept="application/json" />
+              <button id="reset-data" class="ghost">Reset to Defaults</button>
+            </div>
+            <p class="muted">Use export/import to back up data or move it to another device.</p>
+          </article>
+        </div>
+
+        <article class="card">
+          <h2>All People</h2>
+          <div id="people-table"></div>
+        </article>
+      </section>
+      </main>
+
+      <footer class="app-footer">
+        <p>Built for editable attendance tracking. Data is stored securely in the cloud.</p>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
