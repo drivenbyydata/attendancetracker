@@ -25,7 +25,9 @@
               required
             />
           </div>
-          <button id="pin-submit" class="primary" type="button">Unlock</button>
+          <button id="pin-submit" class="primary" type="button" onclick="window.pinUnlock && window.pinUnlock()">
+            Unlock
+          </button>
         </form>
         <p id="pin-error" class="muted error"></p>
       </div>
@@ -221,7 +223,27 @@
       </footer>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=20260208"></script>
+    <script>
+      window.__appReady = false;
+      window.setPinError = (message) => {
+        const target = document.getElementById("pin-error");
+        if (target) target.textContent = message || "";
+      };
+      window.pinUnlock = () => {
+        window.setPinError("App is still loading. Please wait a moment.");
+      };
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          if (!window.__appReady) {
+            window.setPinError("App failed to load. Check your network or refresh.");
+          }
+        }, 1500);
+      });
+    </script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+      onerror="window.setPinError('Supabase library blocked. Please check your network.');"
+    ></script>
+    <script src="app.js?v=20260208" onerror="window.setPinError('App failed to load.');"></script>
   </body>
 </html>

@@ -1009,6 +1009,8 @@ function init() {
     pinSubmit.disabled = false;
   };
 
+  window.pinUnlock = attemptUnlock;
+
   pinSubmit.addEventListener("click", attemptUnlock);
   pinInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -1154,6 +1156,8 @@ function init() {
     setLockState(true);
     pinInput.focus();
   }
+
+  window.__appReady = true;
 }
 
 init();
