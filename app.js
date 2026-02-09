@@ -785,7 +785,9 @@ function openDayModal(contentHtml) {
 
 function closeDayModal() {
   const overlay = document.getElementById("day-modal");
+  const content = document.getElementById("day-modal-content");
   overlay.hidden = true;
+  if (content) content.innerHTML = "";
 }
 
 function openPersonDayModal(person, dateStr, entry) {
@@ -1063,6 +1065,7 @@ async function unlockWithPin(pinInput) {
 
   state.data = remoteData;
   state.ready = true;
+  closeDayModal();
   setLockState(false);
   renderAll();
   return true;
@@ -1078,6 +1081,7 @@ function init() {
 
   const attemptUnlock = async () => {
     pinSubmit.disabled = true;
+    setPinError("");
     const value = pinInput.value.trim();
     pinInput.value = "";
     const ok = await unlockWithPin(value);
@@ -1086,6 +1090,7 @@ function init() {
   };
 
   window.pinUnlock = attemptUnlock;
+  window.closeDayModal = closeDayModal;
 
   pinSubmit.addEventListener("click", attemptUnlock);
   pinInput.addEventListener("keydown", (event) => {

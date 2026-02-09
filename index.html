@@ -213,7 +213,7 @@
 
       <div id="day-modal" class="modal-overlay" hidden>
         <div class="modal">
-          <button id="day-modal-close" class="modal-close" aria-label="Close">×</button>
+          <button id="day-modal-close" class="modal-close" aria-label="Close" onclick="window.closeDayModal && window.closeDayModal()">×</button>
           <div id="day-modal-content" class="stack"></div>
         </div>
       </div>
@@ -1046,7 +1046,9 @@ function openDayModal(contentHtml) {
 
 function closeDayModal() {
   const overlay = document.getElementById("day-modal");
+  const content = document.getElementById("day-modal-content");
   overlay.hidden = true;
+  if (content) content.innerHTML = "";
 }
 
 function openPersonDayModal(person, dateStr, entry) {
@@ -1324,6 +1326,7 @@ async function unlockWithPin(pinInput) {
 
   state.data = remoteData;
   state.ready = true;
+  closeDayModal();
   setLockState(false);
   renderAll();
   return true;
@@ -1339,6 +1342,7 @@ function init() {
 
   const attemptUnlock = async () => {
     pinSubmit.disabled = true;
+    setPinError("");
     const value = pinInput.value.trim();
     pinInput.value = "";
     const ok = await unlockWithPin(value);
@@ -1347,6 +1351,7 @@ function init() {
   };
 
   window.pinUnlock = attemptUnlock;
+  window.closeDayModal = closeDayModal;
 
   pinSubmit.addEventListener("click", attemptUnlock);
   pinInput.addEventListener("keydown", (event) => {
