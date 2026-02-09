@@ -225,17 +225,35 @@
 
     <script>
       window.__appReady = false;
-      window.setPinError = (message) => {
-        const target = document.getElementById("pin-error");
-        if (target) target.textContent = message || "";
+      window.__appLoadError = "";
+      window.setPinError = function (message) {
+        var target = document.getElementById("pin-error");
+        var text = message || "";
+        if (target) target.textContent = text;
+        window.__appLoadError = text;
       };
-      window.pinUnlock = () => {
+      window.pinUnlock = function () {
         window.setPinError("App is still loading. Please wait a moment.");
       };
-      window.addEventListener("load", () => {
-        setTimeout(() => {
-          if (!window.__appReady) {
-            window.setPinError("App failed to load. Check your network or refresh.");
+      window.onerror = function (message, source, lineno, colno, error) {
+        var detail = message ? String(message) : "Unknown error";
+        if (source) {
+          var shortSource = String(source).split("/").pop();
+          detail += " (" + shortSource + ":" + lineno + ")";
+        }
+        window.setPinError("App error: " + detail);
+        return false;
+      };
+      window.addEventListener("unhandledrejection", function (event) {
+        var reason = event && event.reason ? event.reason : "Unknown promise error";
+        window.setPinError("App error: " + reason);
+      });
+      window.addEventListener("load", function () {
+        setTimeout(function () {
+          if (!window.__appReady && !window.__appLoadError) {
+            window.setPinError(
+              "App failed to load. Try Chrome/Edge or refresh."
+            );
           }
         }, 1500);
       });
