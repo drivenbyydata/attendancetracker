@@ -37,16 +37,55 @@ const MONTH_NAMES = [
 ];
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const supabase =
-  window.supabase && typeof window.supabase.createClient === "function"
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-        },
-      })
-    : null;
+const REST_URL = SUPABASE_URL + "/rest/v1/app_state";
+const supportsFetch = typeof fetch === "function";
+
+function buildHeaders(extra) {
+  var headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: "Bearer " + SUPABASE_ANON_KEY,
+    "Content-Type": "application/json",
+  };
+  if (extra) {
+    for (var key in extra) {
+      headers[key] = extra[key];
+    }
+  }
+  return headers;
+}
+
+async function fetchJson(url, options) {
+  if (!supportsFetch) return null;
+  try {
+    var response = await fetch(url, options);
+    if (!response.ok) {
+      var text = await response.text();
+      throw new Error("HTTP " + response.status + " " + text);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function upsertState(payload) {
+  var url = REST_URL + "?on_conflict=key";
+  var headers = buildHeaders({
+    Prefer: "resolution=merge-duplicates,return=representation",
+  });
+  var response = await fetch(url, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    var text = await response.text();
+    console.error("Upsert failed:", response.status, text);
+    return false;
+  }
+  return true;
+}
 
 const defaultData = () => ({
   settings: {
@@ -949,29 +988,26 @@ function setLockState(isLocked) {
 }
 
 async function loadRemoteData() {
-  const { data, error } = await supabase
-    .from("app_state")
-    .select("data")
-    .eq("key", CLOUD_KEY)
-    .maybeSingle();
-
-  if (error) {
-    console.error(error);
+  var url =
+    REST_URL +
+    "?key=eq." +
+    encodeURIComponent(CLOUD_KEY) +
+    "&select=data";
+  var data = await fetchJson(url, { headers: buildHeaders() });
+  if (!data) {
     return null;
   }
-
-  if (!data) {
-    const payload = defaultData();
-    const { error: insertError } = await supabase.from("app_state").upsert({
+  if (!data.length) {
+    var payload = defaultData();
+    var ok = await upsertState({
       key: CLOUD_KEY,
       data: payload,
       updated_at: new Date().toISOString(),
     });
-    if (insertError) console.error(insertError);
+    if (!ok) console.error("Initial cloud save failed.");
     return payload;
   }
-
-  return data.data || defaultData();
+  return data[0].data || defaultData();
 }
 
 function saveData() {
@@ -982,13 +1018,13 @@ function saveData() {
 
 async function persistData() {
   if (!state.ready) return;
-  const payload = {
+  var payload = {
     key: CLOUD_KEY,
     data: state.data,
     updated_at: new Date().toISOString(),
   };
-  const { error } = await supabase.from("app_state").upsert(payload);
-  if (error) console.error(error);
+  var ok = await upsertState(payload);
+  if (!ok) console.error("Cloud save failed.");
 }
 
 async function unlockWithPin(pinInput) {
@@ -996,8 +1032,8 @@ async function unlockWithPin(pinInput) {
     setPinError("Incorrect PIN.");
     return false;
   }
-  if (!supabase) {
-    setPinError("Supabase client failed to initialize.");
+  if (!supportsFetch) {
+    setPinError("Browser is too old. Please use Chrome or Edge.");
     return false;
   }
 
