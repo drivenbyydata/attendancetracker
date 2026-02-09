@@ -300,6 +300,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const REST_URL = SUPABASE_URL + "/rest/v1/app_state";
 const supportsFetch = typeof fetch === "function";
+var lastFetchError = "";
 
 function buildHeaders(extra) {
   var headers = {
@@ -317,15 +318,20 @@ function buildHeaders(extra) {
 
 async function fetchJson(url, options) {
   if (!supportsFetch) return null;
+  lastFetchError = "";
   try {
     var response = await fetch(url, options);
     if (!response.ok) {
       var text = await response.text();
-      throw new Error("HTTP " + response.status + " " + text);
+      lastFetchError = "HTTP " + response.status + " " + text;
+      throw new Error(lastFetchError);
     }
     return await response.json();
   } catch (error) {
     console.error(error);
+    if (!lastFetchError) {
+      lastFetchError = error && error.message ? error.message : "Network error";
+    }
     return null;
   }
 }
@@ -335,17 +341,25 @@ async function upsertState(payload) {
   var headers = buildHeaders({
     Prefer: "resolution=merge-duplicates,return=representation",
   });
-  var response = await fetch(url, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    var text = await response.text();
-    console.error("Upsert failed:", response.status, text);
+  try {
+    var response = await fetch(url, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      var text = await response.text();
+      lastFetchError = "HTTP " + response.status + " " + text;
+      console.error("Upsert failed:", response.status, text);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    lastFetchError =
+      error && error.message ? error.message : "Network error";
+    console.error("Upsert failed:", error);
     return false;
   }
-  return true;
 }
 
 const defaultData = () => ({
@@ -1300,7 +1314,8 @@ async function unlockWithPin(pinInput) {
 
   const remoteData = await loadRemoteData();
   if (!remoteData) {
-    setPinError("Cloud data unavailable. Check Supabase setup.");
+    var detail = lastFetchError ? lastFetchError : "Cloud data unavailable.";
+    setPinError(detail);
     return false;
   }
 
